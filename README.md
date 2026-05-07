@@ -1,22 +1,98 @@
-## Discord GCE vm power
+# Minecraft Server Ops
 
-Provides Discord-bot slash command to start / stop your vm instance on GCE.
+Discord-based Minecraft server operations automation for GCE.
 
-### Usage
+This project extends GCE VM power control with Minecraft-safe shutdown, backup automation, idle auto stop, and Discord-native server operations.
 
-`/gce (start|stop) [instance: <instance-name>] [zone: <zone>]`
+---
 
-### Hosting a bot server
+## Core Features
+
+### GCE VM Control
+
+* Start VM from Discord
+* Stop VM from Discord
+* Check VM status
+* Slash command based operations
+
+### Minecraft Safe Shutdown
+
+* RCON player count check
+* save-all before shutdown
+* world backup
+* Minecraft stop confirmation
+* VM shutdown only after safe stop
+
+### Idle Auto Stop
+
+* Detect no online players
+* Wait configurable idle timeout
+* Automatic save + backup + shutdown
+
+### Backup Policy
+
+* Backup before VM stop
+* Cloud Storage upload
+* Keep latest 7 backups
+
+### Discord-native Operations
+
+* `/start`
+* `/stop`
+* `/status`
+* `/backup`
+* `/players`
+* operational alerts
+* auto shutdown notifications
+
+---
+
+## Safe Shutdown Flow
+
+Discord `/stop`
+
+→ Check player count
+→ save-all
+→ backup
+→ stop Minecraft
+→ confirm stopped
+→ stop GCE VM
+
+VM must never stop before Minecraft shutdown.
+
+---
+
+## Environment
 
 Set your environment variables in `.env`.
 
-`GOOGLE_APPLICATION_CREDENTIALS` can be omitted if you are to run this bot on GCP and attach a service account to that resource. Required permissions are:
+Required GCP permissions:
 
-  * compute.instances.start
-  * compute.instances.stop
-  * compute.instances.get
-  * compute.zoneOperations.get
+* compute.instances.start
+* compute.instances.stop
+* compute.instances.get
+* compute.zoneOperations.get
 
-### License
+If running on GCP with an attached Service Account,
+`GOOGLE_APPLICATION_CREDENTIALS` may be omitted.
 
-MIT
+---
+
+## Attribution
+
+This project is based on `discord-gce-vm-power` by pione30.
+
+The original repository states MIT in its README.
+
+Original repository:
+https://github.com/pione30/discord-gce-vm-power
+
+This project extends the original concept for Minecraft server operations automation, including safe shutdown, backup automation, idle auto stop, and Discord-native operations.
+
+---
+
+## License
+
+This project follows the original repository attribution.
+
+Please refer to the original project for upstream licensing details.
