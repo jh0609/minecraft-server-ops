@@ -38,5 +38,4 @@ if [[ -z "$player_count" ]]; then
   fail "could not parse player count" 21
 fi
 
-printf '%s\n' "$player_count"
-
+printf '%s\n' "$output"
