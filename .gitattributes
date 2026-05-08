@@ -1,0 +1,3 @@
+scripts/vm/*.sh text eol=lf
+scripts/vm/*.env.example text eol=lf
+

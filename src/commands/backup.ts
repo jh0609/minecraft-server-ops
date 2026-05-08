@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { CommandInteraction } from "discord.js";
-import { createSshRemoteCommandClientFromEnv } from "../adapters/remote/SshRemoteCommandClient";
+import { createRemoteCommandClientFromEnv } from "../adapters/remote/createRemoteCommandClient";
 import { RemoteCommandResult } from "../adapters/remote/types";
 
 const data = new SlashCommandBuilder()
@@ -36,7 +36,7 @@ const execute = async (interaction: CommandInteraction): Promise<void> => {
   await interaction.deferReply();
 
   try {
-    const remoteCommandClient = createSshRemoteCommandClientFromEnv();
+    const remoteCommandClient = createRemoteCommandClientFromEnv();
     const result = await remoteCommandClient.run({ script: "backup" });
     const formattedResult = formatResult(result);
 

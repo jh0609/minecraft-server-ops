@@ -4,12 +4,8 @@ import {
   RemoteCommandClient,
   RemoteCommandRequest,
   RemoteCommandResult,
-  RemoteScriptName,
 } from "./types";
-
-const SCRIPT_PATHS: Record<RemoteScriptName, string> = {
-  backup: "/opt/mcops/scripts/backup.sh",
-};
+import { SCRIPT_PATHS } from "./scriptPaths";
 
 type SshRemoteCommandClientOptions = {
   host: string;

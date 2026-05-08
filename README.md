@@ -78,6 +78,16 @@ If running on GCP with an attached Service Account,
 
 ---
 
+## VM Scripts
+
+Minecraft VM-local scripts live under `scripts/vm/` in this repo and are intended to be deployed to `/opt/mcops/scripts/` on the VM.
+
+Create `/opt/mcops/mcops.env` from `scripts/vm/mcops.env.example`. The Bot executes fixed script paths over SSH, including `/opt/mcops/scripts/backup.sh`.
+
+For same-VM validation, set `REMOTE_COMMAND_MODE=local` so the Bot runs `/opt/mcops/scripts/backup.sh` directly. Use `REMOTE_COMMAND_MODE=ssh` when the Bot runs outside the Minecraft VM.
+
+---
+
 ## Attribution
 
 This project is based on `discord-gce-vm-power` by pione30.
