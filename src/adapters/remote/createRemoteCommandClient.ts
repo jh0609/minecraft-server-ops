@@ -4,7 +4,7 @@ import { RemoteCommandClient } from "./types";
 
 type RemoteCommandMode = "local" | "ssh";
 
-const getRemoteCommandMode = (): RemoteCommandMode => {
+export const getRemoteCommandMode = (): RemoteCommandMode => {
   const mode = process.env.REMOTE_COMMAND_MODE ?? "ssh";
   if (mode === "local" || mode === "ssh") return mode;
   throw new Error("REMOTE_COMMAND_MODE must be either local or ssh");
@@ -19,4 +19,3 @@ export const createRemoteCommandClientFromEnv = (): RemoteCommandClient => {
 
   return createSshRemoteCommandClientFromEnv();
 };
-
