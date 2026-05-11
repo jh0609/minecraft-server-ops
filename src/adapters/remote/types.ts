@@ -1,4 +1,4 @@
-export type RemoteScriptName = "backup" | "players";
+export type RemoteScriptName = "backup" | "players" | "stop";
 
 export type RemoteCommandRequest = {
   script: RemoteScriptName;
