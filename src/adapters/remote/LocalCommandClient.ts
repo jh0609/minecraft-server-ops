@@ -4,7 +4,7 @@ import {
   RemoteCommandRequest,
   RemoteCommandResult,
 } from "./types";
-import { SCRIPT_PATHS } from "./scriptPaths";
+import { formatRemoteCommand, SCRIPT_ARGS, SCRIPT_PATHS } from "./scriptPaths";
 
 type LocalCommandClientOptions = {
   commandTimeoutMs: number;
@@ -36,6 +36,8 @@ export class LocalCommandClient implements RemoteCommandClient {
     if (!command) {
       throw new Error(`Unsupported remote script: ${request.script}`);
     }
+    const args = SCRIPT_ARGS[request.script];
+    const formattedCommand = formatRemoteCommand(request.script);
 
     const timeoutMs = request.timeoutMs ?? this.options.commandTimeoutMs;
     const startedAt = Date.now();
@@ -47,7 +49,7 @@ export class LocalCommandClient implements RemoteCommandClient {
       let timedOut = false;
       let forceKillTimer: NodeJS.Timeout | undefined;
 
-      const child = spawn(command, [], {
+      const child = spawn(command, args, {
         shell: false,
         windowsHide: true,
       });
@@ -83,7 +85,7 @@ export class LocalCommandClient implements RemoteCommandClient {
         stderr += error.message;
         finish({
           script: request.script,
-          command,
+          command: formattedCommand,
           exitCode: null,
           signal: null,
           stdout,
@@ -95,7 +97,7 @@ export class LocalCommandClient implements RemoteCommandClient {
       child.on("close", (exitCode, signal) => {
         finish({
           script: request.script,
-          command,
+          command: formattedCommand,
           exitCode,
           signal,
           stdout,

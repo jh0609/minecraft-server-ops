@@ -1,7 +1,8 @@
 import * as backup from "./backup";
 import * as gce from "./gce";
 import * as players from "./players";
+import * as start from "./start";
 import * as status from "./status";
 import * as stop from "./stop";
 
-export { backup, gce, players, status, stop };
+export { backup, gce, players, start, status, stop };

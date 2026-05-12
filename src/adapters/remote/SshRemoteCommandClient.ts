@@ -5,7 +5,7 @@ import {
   RemoteCommandRequest,
   RemoteCommandResult,
 } from "./types";
-import { SCRIPT_PATHS } from "./scriptPaths";
+import { formatRemoteCommand, SCRIPT_ARGS, SCRIPT_PATHS } from "./scriptPaths";
 
 type SshRemoteCommandClientOptions = {
   host: string;
@@ -54,6 +54,8 @@ export class SshRemoteCommandClient implements RemoteCommandClient {
     if (!command) {
       throw new Error(`Unsupported remote script: ${request.script}`);
     }
+    const commandLine = this.formatSshCommand(command, SCRIPT_ARGS[request.script]);
+    const formattedCommand = formatRemoteCommand(request.script);
 
     const timeoutMs = request.timeoutMs ?? this.options.commandTimeoutMs;
     const startedAt = Date.now();
@@ -88,7 +90,7 @@ export class SshRemoteCommandClient implements RemoteCommandClient {
         timedOut = true;
         finish({
           script: request.script,
-          command,
+          command: formattedCommand,
           exitCode: null,
           signal: null,
           stdout,
@@ -99,7 +101,7 @@ export class SshRemoteCommandClient implements RemoteCommandClient {
 
       connection
         .on("ready", () => {
-          connection.exec(command, (execError, stream) => {
+          connection.exec(commandLine, (execError, stream) => {
             if (execError) {
               fail(execError);
               return;
@@ -109,7 +111,7 @@ export class SshRemoteCommandClient implements RemoteCommandClient {
               .on("close", (exitCode: number | null, signal: string | null) => {
                 finish({
                   script: request.script,
-                  command,
+                  command: formattedCommand,
                   exitCode,
                   signal,
                   stdout,
@@ -139,6 +141,10 @@ export class SshRemoteCommandClient implements RemoteCommandClient {
       privateKey: readFileSync(this.options.privateKeyPath),
       readyTimeout: this.options.connectTimeoutMs,
     };
+  }
+
+  private formatSshCommand(command: string, args: string[]): string {
+    return [command, ...args].map((value) => `'${value.replace(/'/g, "'\\''")}'`).join(" ");
   }
 }
 
