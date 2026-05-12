@@ -3,14 +3,14 @@ import { RemoteScriptName } from "./types";
 export const SCRIPT_PATHS: Record<RemoteScriptName, string> = {
   backup: "/opt/mcops/scripts/backup.sh",
   players: "/opt/mcops/scripts/players.sh",
-  start: "/usr/bin/systemctl",
+  start: "/opt/mcops/scripts/start.sh",
   stop: "/opt/mcops/scripts/safe-stop.sh",
 };
 
 export const SCRIPT_ARGS: Record<RemoteScriptName, string[]> = {
   backup: [],
   players: [],
-  start: ["start", "minecraft"],
+  start: [],
   stop: [],
 };
 
