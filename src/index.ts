@@ -1,4 +1,5 @@
 import { Client, Intents } from "discord.js";
+import { authorizeCommand } from "./auth";
 import * as commands from "./commands";
 import { startStatusBoardUpdater } from "./statusBoard";
 
@@ -12,10 +13,14 @@ discordClient.once("ready", () => {
 discordClient.on("interactionCreate", async (interaction) => {
   if (!interaction.isCommand()) return;
 
-  await Object.entries(commands)
-    .find(([, command]) => command.data.toJSON().name === interaction.commandName)
-    ?.[1]
-    .execute(interaction);
+  const command = Object.values(commands).find(
+    (candidate) => candidate.data.toJSON().name === interaction.commandName
+  );
+  if (!command) return;
+
+  if (!(await authorizeCommand(interaction))) return;
+
+  await command.execute(interaction);
 });
 
 discordClient.login(process.env.DISCORD_BOT_TOKEN);
