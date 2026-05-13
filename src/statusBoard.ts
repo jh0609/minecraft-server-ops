@@ -3,7 +3,8 @@ import * as path from "path";
 import { Client, TextChannel } from "discord.js";
 import {
   collectMinecraftStatus,
-  formatStatusLines,
+  formatPresenceText,
+  formatUserFacingStatusLines,
 } from "./services/minecraftStatus";
 
 const STATUS_BOARD_PATH = path.resolve("data", "status-board.json");
@@ -39,11 +40,19 @@ const writeStatusBoardRecord = async (
 
 const renderStatusBoard = async (): Promise<string> => {
   const snapshot = await collectMinecraftStatus();
+  const now = new Date();
   return [
     "**Minecraft Ops Status**",
-    ...formatStatusLines(snapshot),
-    `Last updated: ${new Date().toISOString()}`,
+    ...formatUserFacingStatusLines(snapshot, now),
   ].join("\n");
+};
+
+const updatePresence = async (client: Client): Promise<void> => {
+  const snapshot = await collectMinecraftStatus();
+  await client.user?.setPresence({
+    activities: [{ name: formatPresenceText(snapshot), type: "PLAYING" }],
+    status: "online",
+  });
 };
 
 export const updateStatusBoardMessage = async (
@@ -87,6 +96,7 @@ export const startStatusBoardUpdater = (client: Client): void => {
   const update = async () => {
     try {
       await updateStatusBoardMessage(client);
+      await updatePresence(client);
     } catch (error) {
       console.error("status board update failed", error);
     }
@@ -97,4 +107,3 @@ export const startStatusBoardUpdater = (client: Client): void => {
     void update();
   }, UPDATE_INTERVAL_MS);
 };
-

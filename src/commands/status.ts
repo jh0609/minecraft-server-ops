@@ -2,7 +2,7 @@ import { SlashCommandBuilder } from "@discordjs/builders";
 import { CommandInteraction } from "discord.js";
 import {
   collectMinecraftStatus,
-  formatStatusLines,
+  formatUserFacingStatusLines,
 } from "../services/minecraftStatus";
 
 const data = new SlashCommandBuilder()
@@ -14,8 +14,7 @@ const execute = async (interaction: CommandInteraction): Promise<void> => {
 
   try {
     const snapshot = await collectMinecraftStatus();
-    const lines = formatStatusLines(snapshot);
-    lines.push("Safe stop command: /stop");
+    const lines = formatUserFacingStatusLines(snapshot, new Date());
     await interaction.followUp(lines.join("\n"));
   } catch (error) {
     await interaction.followUp({

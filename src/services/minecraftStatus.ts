@@ -143,3 +143,60 @@ export const formatStatusLines = (
 
   return lines;
 };
+
+const formatTime = (date: Date): string =>
+  new Intl.DateTimeFormat("ko-KR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+
+const toUserFacingVmStatus = (
+  snapshot: MinecraftStatusSnapshot
+): string => {
+  if (snapshot.vmStatus === "RUNNING" && snapshot.minecraftStatus === "booting") {
+    return "부팅 중";
+  }
+  if (snapshot.vmStatus === "RUNNING") return "온라인";
+  if (snapshot.vmStatus === "TERMINATED") return "꺼짐";
+  if (snapshot.vmStatus === "BOOTING") return "부팅 중";
+  return "상태 확인 불가";
+};
+
+const toUserFacingMinecraftStatus = (
+  snapshot: MinecraftStatusSnapshot
+): string => {
+  if (snapshot.minecraftStatus === "active") return "실행 중";
+  if (snapshot.minecraftStatus === "booting") return "준비 중";
+  return "사용 불가";
+};
+
+export const formatUserFacingStatusLines = (
+  snapshot: MinecraftStatusSnapshot,
+  date: Date
+): string[] => [
+  `서버 상태: ${toUserFacingVmStatus(snapshot)}`,
+  `마인크래프트: ${toUserFacingMinecraftStatus(snapshot)}`,
+  `접속자: ${
+    snapshot.playerCount
+      ? `${snapshot.playerCount.online} / ${snapshot.playerCount.max}`
+      : "-"
+  }`,
+  `마지막 업데이트: ${formatTime(date)}`,
+];
+
+export const formatPresenceText = (
+  snapshot: MinecraftStatusSnapshot
+): string => {
+  if (snapshot.playerCount) {
+    return `서버 온라인 · ${snapshot.playerCount.online}/${snapshot.playerCount.max}`;
+  }
+  if (snapshot.vmStatus === "TERMINATED") return "서버 꺼짐";
+  if (
+    snapshot.vmStatus === "BOOTING" ||
+    (snapshot.vmStatus === "RUNNING" && snapshot.minecraftStatus === "booting")
+  ) {
+    return "서버 부팅 중";
+  }
+  return "⚪ 상태 확인 불가";
+};
