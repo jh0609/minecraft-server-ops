@@ -1,9 +1,6 @@
 import * as http from "http";
 import * as https from "https";
 
-const GCP_PROJECT = "mcops-495701";
-const GCP_ZONE = "asia-northeast3-a";
-const GCP_INSTANCE = "mcops-server";
 const MAX_OUTPUT_LENGTH = 1200;
 
 type MetadataTokenResponse = {
@@ -48,6 +45,22 @@ const readResponseBody = (
     response.on("end", () => resolve(data));
     response.on("error", reject);
   });
+
+const requiredEnv = (name: string): string => {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is required`);
+  return value;
+};
+
+export const getVmConfig = (): {
+  project: string;
+  zone: string;
+  instance: string;
+} => ({
+  project: requiredEnv("GCP_PROJECT"),
+  zone: requiredEnv("GCP_ZONE"),
+  instance: requiredEnv("GCP_INSTANCE"),
+});
 
 export const getMetadataToken = async (): Promise<string> => {
   const response = await new Promise<HttpJsonResponse<MetadataTokenResponse>>(
@@ -137,8 +150,10 @@ const computeRequest = async <T>(
     request.end();
   });
 
-const instancePath = (): string =>
-  `/compute/v1/projects/${GCP_PROJECT}/zones/${GCP_ZONE}/instances/${GCP_INSTANCE}`;
+const instancePath = (): string => {
+  const { project, zone, instance } = getVmConfig();
+  return `/compute/v1/projects/${project}/zones/${zone}/instances/${instance}`;
+};
 
 export const startInstance = async (
   accessToken: string
@@ -159,14 +174,3 @@ export const getInstanceStatus = async (): Promise<string> => {
   const response = await getInstance(accessToken);
   return response.body.status ?? "UNKNOWN";
 };
-
-export const getVmConfig = (): {
-  project: string;
-  zone: string;
-  instance: string;
-} => ({
-  project: GCP_PROJECT,
-  zone: GCP_ZONE,
-  instance: GCP_INSTANCE,
-});
-

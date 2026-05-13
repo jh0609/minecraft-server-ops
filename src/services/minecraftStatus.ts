@@ -48,6 +48,33 @@ const mapVmStatus = (value: string): "RUNNING" | "TERMINATED" | "BOOTING" | "UNK
   return "UNKNOWN";
 };
 
+const isSshNotReadyError = (error: unknown): boolean => {
+  const nodeError = error as NodeJS.ErrnoException;
+  const message = error instanceof Error ? error.message : String(error);
+
+  return (
+    nodeError.code === "ECONNREFUSED" ||
+    nodeError.code === "ETIMEDOUT" ||
+    /handshake.*timeout/i.test(message) ||
+    /connection.*timeout/i.test(message) ||
+    /ready.*timeout/i.test(message)
+  );
+};
+
+const bootingSnapshot = (
+  vmStatus: MinecraftStatusSnapshot["vmStatus"],
+  remoteCommandMode: MinecraftStatusSnapshot["remoteCommandMode"]
+): MinecraftStatusSnapshot => ({
+  vmStatus,
+  minecraftStatus: "booting",
+  remoteCommandMode,
+  playerCount: null,
+  playerCheckExitCode: null,
+  playerCheckTimedOut: true,
+  stdout: "",
+  stderr: "",
+});
+
 export const collectMinecraftStatus = async (): Promise<MinecraftStatusSnapshot> => {
   const remoteCommandMode = getRemoteCommandMode();
   const vmStatus = mapVmStatus(await getInstanceStatus());
@@ -66,7 +93,16 @@ export const collectMinecraftStatus = async (): Promise<MinecraftStatusSnapshot>
   }
 
   const remoteCommandClient = createRemoteCommandClientFromEnv();
-  const result = await remoteCommandClient.run({ script: "players" });
+  const result = await remoteCommandClient.run({ script: "players" }).catch((error) => {
+    if (isSshNotReadyError(error)) {
+      return null;
+    }
+    throw error;
+  });
+
+  if (!result) {
+    return bootingSnapshot(vmStatus, remoteCommandMode);
+  }
 
   if (result.timedOut) {
     return {

@@ -5,15 +5,33 @@ import {
   collectMinecraftStatus,
   formatPresenceText,
   formatUserFacingStatusLines,
+  MinecraftStatusSnapshot,
 } from "./services/minecraftStatus";
+import { IdleAutoStop } from "./idleAutoStop";
+import {
+  getStatusMonitorIntervalMs,
+  StatusMonitor,
+  StatusMonitorUpdate,
+} from "./statusMonitor";
 
 const STATUS_BOARD_PATH = path.resolve("data", "status-board.json");
-const UPDATE_INTERVAL_MS = 60_000;
 
 type StatusBoardRecord = {
   channelId: string;
   messageId: string;
 };
+
+const monitor = new StatusMonitor(getStatusMonitorIntervalMs());
+const idleAutoStop = new IdleAutoStop(monitor);
+let servicesStarted = false;
+
+export const getStatusBoardServices = (): {
+  monitor: StatusMonitor;
+  idleAutoStop: IdleAutoStop;
+} => ({
+  monitor,
+  idleAutoStop,
+});
 
 const readStatusBoardRecord = async (): Promise<StatusBoardRecord | null> => {
   try {
@@ -38,8 +56,7 @@ const writeStatusBoardRecord = async (
   await fs.writeFile(STATUS_BOARD_PATH, JSON.stringify(record, null, 2), "utf8");
 };
 
-const renderStatusBoard = async (): Promise<string> => {
-  const snapshot = await collectMinecraftStatus();
+const renderStatusBoard = (snapshot: MinecraftStatusSnapshot): string => {
   const now = new Date();
   return [
     "**Minecraft Ops Status**",
@@ -47,8 +64,26 @@ const renderStatusBoard = async (): Promise<string> => {
   ].join("\n");
 };
 
-const updatePresence = async (client: Client): Promise<void> => {
-  const snapshot = await collectMinecraftStatus();
+const renderStatusBoardWithIdle = (
+  update: StatusMonitorUpdate,
+  idleAutoStop: IdleAutoStop
+): string => [
+  "**Minecraft Ops Status**",
+  ...formatUserFacingStatusLines(update.snapshot, update.collectedAt),
+  formatIdleAutoStopLine(idleAutoStop),
+].join("\n");
+
+const formatIdleAutoStopLine = (idleAutoStop: IdleAutoStop): string => {
+  const state = idleAutoStop.getState();
+  if (!state.enabled) return "Auto-stop: disabled";
+  if (state.stopping) return "Auto-stop: enabled · stopping";
+  return `Auto-stop: enabled · idle ${state.idleMinutes}/${state.thresholdMinutes} min`;
+};
+
+const updatePresence = async (
+  client: Client,
+  snapshot: MinecraftStatusSnapshot
+): Promise<void> => {
   await client.user?.setPresence({
     activities: [{ name: formatPresenceText(snapshot), type: "PLAYING" }],
     status: "online",
@@ -56,7 +91,9 @@ const updatePresence = async (client: Client): Promise<void> => {
 };
 
 export const updateStatusBoardMessage = async (
-  client: Client
+  client: Client,
+  update: StatusMonitorUpdate,
+  idleAutoStop: IdleAutoStop
 ): Promise<void> => {
   const record = await readStatusBoardRecord();
   if (!record) return;
@@ -65,15 +102,20 @@ export const updateStatusBoardMessage = async (
   if (!channel || !channel.isText()) return;
 
   const message = await (channel as TextChannel).messages.fetch(record.messageId);
-  await message.edit(await renderStatusBoard());
+  await message.edit(renderStatusBoardWithIdle(update, idleAutoStop));
 };
 
 export const createOrUpdateStatusBoard = async (
   client: Client,
-  channel: TextChannel
+  channel: TextChannel,
+  monitor: StatusMonitor,
+  idleAutoStop: IdleAutoStop
 ): Promise<void> => {
   const record = await readStatusBoardRecord();
-  const content = await renderStatusBoard();
+  const latestUpdate = monitor.getLatestUpdate();
+  const content = latestUpdate
+    ? renderStatusBoardWithIdle(latestUpdate, idleAutoStop)
+    : renderStatusBoard(await collectMinecraftStatus());
 
   if (record && record.channelId === channel.id) {
     try {
@@ -93,17 +135,24 @@ export const createOrUpdateStatusBoard = async (
 };
 
 export const startStatusBoardUpdater = (client: Client): void => {
-  const update = async () => {
+  if (servicesStarted) return;
+  servicesStarted = true;
+
+  idleAutoStop.start();
+
+  monitor.subscribe(async (update) => {
     try {
-      await updateStatusBoardMessage(client);
-      await updatePresence(client);
+      await updateStatusBoardMessage(client, update, idleAutoStop);
     } catch (error) {
       console.error("status board update failed", error);
     }
-  };
 
-  void update();
-  setInterval(() => {
-    void update();
-  }, UPDATE_INTERVAL_MS);
+    try {
+      await updatePresence(client, update.snapshot);
+    } catch (error) {
+      console.error("presence update failed", error);
+    }
+  });
+
+  monitor.start();
 };

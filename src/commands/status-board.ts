@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { CommandInteraction, TextChannel } from "discord.js";
-import { createOrUpdateStatusBoard } from "../statusBoard";
+import { createOrUpdateStatusBoard, getStatusBoardServices } from "../statusBoard";
 
 const data = new SlashCommandBuilder()
   .setName("status-board")
@@ -20,9 +20,12 @@ const execute = async (interaction: CommandInteraction): Promise<void> => {
     return;
   }
 
+  const { monitor, idleAutoStop } = getStatusBoardServices();
   await createOrUpdateStatusBoard(
     interaction.client,
-    interaction.channel as TextChannel
+    interaction.channel as TextChannel,
+    monitor,
+    idleAutoStop
   );
 
   await interaction.followUp({
@@ -32,4 +35,3 @@ const execute = async (interaction: CommandInteraction): Promise<void> => {
 };
 
 export { data, execute };
-
